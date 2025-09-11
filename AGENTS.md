@@ -5,6 +5,9 @@
 - 严格遵循规则，不得越权修改  
 - 使用简体中文对话与注释  
 - 分析代码问题时可使用英文，但回答与文档必须用中文  
+- 日志按照《changelog.md》模板进行记录，注意使用当前日期
+- 调试与排查执行《Debugging-Rules.md》的要求，要主动输出或提供日志记录
+- 脚本模板在scripts/templates
 
 ---
 
@@ -78,11 +81,11 @@
 <link rel="stylesheet" href="style.css">
 <script src="app.js"></script>
 <div class="user-card">张三</div>
-```  
+```
 ❌ 错误：  
 ```html
 <div style="color:red;" onclick="alert('hi')">张三</div>
-```  
+```
 
 ---
 
@@ -103,7 +106,7 @@ class User:
 ❌ 错误：  
 ```python
 user = {"id": 1, "name": "张三"}  # 未定义结构
-```  
+```
 
 ✅ 正确：`uv add requests`  
 ❌ 错误：`pip install requests`  
@@ -138,7 +141,7 @@ interface User {
 ❌ 错误：  
 ```ts
 let user: any = {}
-```  
+```
 
 ---
 
