@@ -5,11 +5,15 @@ echo "=== [SETUP] 开始配置 Agent Rules 环境 ==="
 
 # 1. 确保项目根目录存在
 mkdir -p scripts/templats
+mkdir -p .vscode
 
 # 2. 拷贝 ../agent_rules 下的规则文件
 if [ -d "../agent_rules" ]; then
   echo "[COPY] 从 ../agent_rules 拷贝规则文件到项目根目录"
   cp ../agent_rules/*.md ./ || true
+  cp ../agent_rules/.prettierrc ./ || true
+  cp ../agent_rules/.prettierignore ./ || true
+  cp ../agent_rules/.vscode/*.json ./.vscode/ || true
   cp ../agent_rules/scripts/*.sh ./scripts/templates/ || true
 else
   echo "⚠️ 未找到 ../agent_rules 目录，请确认路径"
@@ -27,9 +31,43 @@ indent_size = 2
 end_of_line = lf
 insert_final_newline = true
 trim_trailing_whitespace = true
+max_line_length = 120
 
+# Vue 文件配置
+[*.vue]
+indent_style = space
+indent_size = 2
+
+# TypeScript/JavaScript 文件配置
+[*.{ts,js,tsx,jsx}]
+indent_style = space
+indent_size = 2
+
+# JSON 文件配置
+[*.json]
+indent_style = space
+indent_size = 2
+
+# CSS/SCSS 文件配置
+[*.{css,scss,sass}]
+indent_style = space
+indent_size = 2
+
+# Markdown 文件配置
 [*.md]
 trim_trailing_whitespace = false
+indent_style = space
+indent_size = 2
+
+# YAML 文件配置
+[*.{yml,yaml}]
+indent_style = space
+indent_size = 2
+
+# Shell 脚本配置
+[*.sh]
+indent_style = space
+indent_size = 2
 EOF
 echo "[GEN] .editorconfig 已生成"
 

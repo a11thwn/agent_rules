@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+.output/
+.nuxt/
+.nitro/
+
+# Logs
+logs/
+*.log
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Environment files
+.env
+.env.*
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Package files
+*.tar.gz
+*.zip
+
+# Backup files
+data/backups/
+*.backup
+
+# Generated files
+coverage/
+.nyc_output/
+
+# Lock files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml

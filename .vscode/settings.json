@@ -1,0 +1,108 @@
+{
+  // 自动保存设置
+  "files.autoSave": "afterDelay",
+  "files.autoSaveDelay": 500,
+
+  // 格式化设置
+  "editor.formatOnSave": true,
+  "editor.formatOnPaste": true,
+  "editor.formatOnType": false,
+  "editor.codeActionsOnSave": {
+    "source.fixAll": "explicit",
+    "source.organizeImports": "explicit"
+  },
+
+  // 默认格式化器
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+
+  // 文件类型特定格式化器
+  "[vue]": {
+    "editor.defaultFormatter": "Vue.volar"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[css]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[scss]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[html]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[markdown]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+
+  // Prettier 配置
+  "prettier.semi": false,
+  "prettier.singleQuote": true,
+  "prettier.trailingComma": "es5",
+  "prettier.tabWidth": 2,
+  "prettier.useTabs": false,
+  "prettier.printWidth": 120,
+  "prettier.endOfLine": "lf",
+
+  // Vue 特定设置
+  "vetur.format.defaultFormatter.html": "prettier",
+  "vetur.format.defaultFormatter.css": "prettier",
+  "vetur.format.defaultFormatter.scss": "prettier",
+  "vetur.format.defaultFormatter.js": "prettier",
+  "vetur.format.defaultFormatter.ts": "prettier",
+
+  // TypeScript 设置
+  "typescript.preferences.importModuleSpecifier": "relative",
+  "typescript.suggest.autoImports": true,
+  "typescript.updateImportsOnFileMove.enabled": "always",
+
+  // 编辑器设置
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "editor.detectIndentation": false,
+  "editor.rulers": [120],
+  "editor.wordWrap": "wordWrapColumn",
+  "editor.wordWrapColumn": 120,
+
+  // 文件设置
+  "files.eol": "\n",
+  "files.insertFinalNewline": true,
+  "files.trimTrailingWhitespace": true,
+  "files.trimFinalNewlines": true,
+
+  // 搜索设置
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/.nuxt": true,
+    "**/.output": true,
+    "**/coverage": true
+  },
+
+  // 文件监视设置
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/dist/**": true,
+    "**/.nuxt/**": true,
+    "**/.output/**": true
+  },
+
+  // Emmet 设置
+  "emmet.includeLanguages": {
+    "vue-html": "html",
+    "vue": "html"
+  },
+
+  // 其他设置
+  "editor.minimap.enabled": true,
+  "editor.minimap.maxColumn": 120,
+  "breadcrumbs.enabled": true,
+  "explorer.confirmDelete": false,
+  "explorer.confirmDragAndDrop": false
+}
