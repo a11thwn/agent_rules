@@ -14,7 +14,7 @@ if [ -d "../agent_rules" ]; then
   cp ../agent_rules/.prettierrc ./ || true
   cp ../agent_rules/.prettierignore ./ || true
   cp ../agent_rules/.vscode/*.json ./.vscode/ || true
-  cp ../agent_rules/scripts/*.sh ./scripts/templates/ || true
+  cp ../agent_rules/scripts/templates/*.sh ./scripts/templates/ || true
 else
   echo "⚠️ 未找到 ../agent_rules 目录，请确认路径"
 fi
