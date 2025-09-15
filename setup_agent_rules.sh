@@ -4,7 +4,7 @@ set -e
 echo "=== [SETUP] 开始配置 Agent Rules 环境 ==="
 
 # 1. 确保项目根目录存在
-mkdir -p scripts/templats
+mkdir -p scripts/templates
 mkdir -p .vscode
 
 # 2. 拷贝 ../agent_rules 下的规则文件
