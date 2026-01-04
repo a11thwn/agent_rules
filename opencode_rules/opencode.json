@@ -1,0 +1,39 @@
+{
+  "instructions": ["AGENTS.md", "Debugging-Rules.md"],
+  "permission": {
+    "bash": {
+      "git push": "ask",
+      "rm -rf": "ask",
+      "git reset --hard": "ask",
+      "git clean": "ask",
+      "git push -f": "ask",
+      "*": "allow"
+    },
+    "write": {
+      "opencode.json": "ask",
+      "AGENTS.md": "ask",
+      "*": "allow"
+    }
+  },
+  "tools": {
+    "bash": true,
+    "write": true,
+    "edit": true,
+    "read": true,
+    "grep": true,
+    "glob": true,
+    "background_task": true,
+    "background_output": true,
+    "background_cancel": true,
+    "session_list": true,
+    "session_read": true,
+    "session_search": true,
+    "session_info": true,
+    "todowrite": true,
+    "todoread": true,
+    "skill": true,
+    "task": true,
+    "call_omo_agent": true
+  },
+
+}

@@ -1,7 +1,83 @@
 # CHANGELOG
 
-此文件用于记录项目的所有修改历史，确保每次修复、优化或新增功能都有迹可循。  
+此文件用于记录项目的所有修改历史，确保每次修复、优化或新增功能都有迹可循。
 请按照以下格式填写：
+
+---
+
+## [2026-01-04] - 修复 OpenCode 配置模板错误字段
+### 问题描述
+- `opencode_rules/opencode.json` 配置模板包含 OpenCode 不支持的字段
+- 在其他项目中使用时报错：`Unrecognized keys: "temperature", "max_steps", "agents"`
+- 导致配置文件验证失败，OpenCode 无法正常启动
+
+### 分析原因
+- 配置模板误用了非官方的配置项：
+  - `temperature` - 不是 OpenCode 配置项
+  - `max_steps` - 不是 OpenCode 配置项
+  - `agents` - 正确字段应为 `agent`（单数），且格式不同
+- 这些字段可能是从其他 AI 工具配置中误复制而来
+
+### 解决方案
+- 根据官方文档 [OpenCode Config](https://opencode.ai/docs/config/) 移除无效字段
+- 保留有效的配置项：
+  - `instructions` - 规则文件加载 ✓
+  - `permission` - 权限配置 ✓
+  - `tools` - 工具配置 ✓
+
+### 改动内容
+- 修改 `opencode_rules/opencode.json`：
+  - 移除 `temperature: 0.3` 字段（第 38 行）
+  - 移除 `max_steps: 50` 字段（第 39 行）
+  - 移除整个 `agents` 对象（第 40-56 行）
+
+### 影响范围
+- 修复后的配置符合 OpenCode 官方规范，可在任何项目中正常使用
+- 不影响原有功能，仅移除无效配置项
+- OpenCode Agent 协作、并行任务等功能仍可正常使用
+
+### 后续计划
+- 已完成，配置验证通过
+
+---
+
+## [2026-01-04] - 新增 OpenCode 规则支持
+### 问题描述
+- 原有规则仅支持 Antigravity 和 Cursor/VS Code，未适配 OpenCode 平台
+- OpenCode 拥有独特的 Agent 协作机制、并行任务和会话管理功能，原有规则无法充分利用
+
+### 分析原因
+- OpenCode 采用不同的规则加载方式（`AGENTS.md` 在项目根目录自动加载）
+- OpenCode 支持 background_task 并行执行、多 Agent 协作、会话历史等功能
+- 原有规则未针对 OpenCode 特性进行优化
+
+### 解决方案
+- 创建 `opencode_rules/` 目录，存放 OpenCode 专用规则
+- 保留原有代码不变，采用增量策略添加 OpenCode 支持
+- 新增 OpenCode Agent 协作规范、Background Task 最佳实践、会话管理指南
+- 提供可复用的 Agent Skills（code-review、bug-fix、refactor）
+
+### 改动内容
+- 新增 `opencode_rules/` 目录结构
+- 新增 `opencode_rules/AGENTS.md` - OpenCode 专用主规则（继承原有核心约束）
+- 新增 `opencode_rules/opencode.json` - OpenCode 配置模板（权限、工具、Agent 配置）
+- 新增 `opencode_rules/SKILLS/` 目录和 3 个技能文件
+  - `code-review.mdc` - 代码审查技能
+  - `bug-fix.mdc` - Bug 修复技能
+  - `refactor.mdc` - 重构技能
+- 新增 `opencode_rules/scripts/templates/opencode_parallel_tasks.sh` - 并行任务脚本模板
+- 新增 `opencode_rules/README.md` - OpenCode 规则使用说明
+- 修改主 `README.md` - 添加 OpenCode 规则说明章节
+
+### 影响范围
+- 原有规则和安装机制保持不变，向后兼容
+- 新增的 OpenCode 规则可选使用，不影响现有工作流
+- 支持 OpenCode 专属功能：Agent 协作、并行任务、会话管理
+
+### 后续计划
+- 收集 OpenCode 使用反馈，持续优化规则
+- 考虑添加更多 Agent Skills（如 frontend-ui-ux、document-writer）
+- 探索 OpenCode MCP 服务器集成
 
 ---
 
