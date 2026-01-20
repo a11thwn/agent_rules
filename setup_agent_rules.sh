@@ -14,6 +14,7 @@ SYNC_CURSOR="1"
 FORCE="0"
 DRY_RUN="0"
 NO_BACKUP="0"
+NO_SKILLS="0"
 
 # 临时文件列表（用于退出时清理）
 TMP_FILES=()
@@ -29,12 +30,13 @@ log_error() { echo "[ERROR] $*" >&2; }
 usage() {
   cat <<'EOF'
 用法：
-  ./setup_agent_rules.sh [--dir <path>] [--src <path>] [--no-cursor] [--force] [--no-backup] [--dry-run] [--help]
+  ./setup_agent_rules.sh [--dir <path>] [--src <path>] [--no-cursor] [--no-skills] [--force] [--no-backup] [--dry-run] [--help]
 
 参数：
   --dir <path>       指定安装到哪个项目根目录（默认：当前目录）
   --src <path>       指定外部规则目录（模式 B）；默认使用脚本同目录（模式 A），找不到则使用内置规则
   --no-cursor        不同步到 .cursor/rules/
+  --no-skills        不安装 Awesome Skills
   --force            允许覆盖已有文件（默认不覆盖）
   --no-backup        覆盖时不备份（默认覆盖会备份到 .backup/<timestamp>/）
   --dry-run          仅输出将创建/覆盖的清单，不做实际写入
@@ -654,6 +656,9 @@ parse_args() {
       --no-cursor)
         SYNC_CURSOR="0"
         ;;
+      --no-skills)
+        NO_SKILLS="1"
+        ;;
       --force)
         FORCE="1"
         ;;
@@ -783,6 +788,143 @@ install_rules() {
   fi
 }
 
+# 安装工作区上下文目录（.context）
+install_workspace_context() {
+  local root="$1"
+  local ts="$2"
+
+  local src
+  src="$(abs_path "$(pick_source_dir)")"
+
+  local src_root="$src"
+  if [ "$(basename "$src")" = "rules_src" ]; then
+    src_root="$(dirname "$src")"
+  fi
+
+  local context_src_dir="$src_root/.context"
+  if [ ! -d "$context_src_dir" ]; then
+    log_info "未检测到来源 .context，跳过：$context_src_dir"
+    return 0
+  fi
+
+  log_info "开始安装工作区上下文：$context_src_dir -> $root/.context/"
+  local f
+  while IFS= read -r -d '' f; do
+    local rel
+    rel="${f#$context_src_dir/}"
+    install_file "$f" "$root/.context/$rel" "$root" "$ts"
+  done < <(find "$context_src_dir" -type f -print0)
+}
+
+# 安装工作流模板目录（.agent/workflows）
+install_agent_workflows() {
+  local root="$1"
+  local ts="$2"
+
+  local src
+  src="$(abs_path "$(pick_source_dir)")"
+
+  local src_root="$src"
+  if [ "$(basename "$src")" = "rules_src" ]; then
+    src_root="$(dirname "$src")"
+  fi
+
+  local workflows_src_dir="$src_root/.agent/workflows"
+  if [ ! -d "$workflows_src_dir" ]; then
+    log_info "未检测到来源 .agent/workflows，跳过：$workflows_src_dir"
+    return 0
+  fi
+
+  log_info "开始安装工作流模板：$workflows_src_dir -> $root/.agent/workflows/"
+  local f
+  while IFS= read -r -d '' f; do
+    local rel
+    rel="${f#$workflows_src_dir/}"
+    install_file "$f" "$root/.agent/workflows/$rel" "$root" "$ts"
+  done < <(find "$workflows_src_dir" -type f -print0)
+}
+
+# 安装 Awesome Skills（可选）
+install_agent_skills() {
+  local root="$1"
+  local ts="$2"
+
+  if [ "$NO_SKILLS" = "1" ]; then
+    log_info "已关闭技能安装（--no-skills）。"
+    return 0
+  fi
+
+  local src
+  src="$(abs_path "$(pick_source_dir)")"
+
+  local src_root="$src"
+  if [ "$(basename "$src")" = "rules_src" ]; then
+    src_root="$(dirname "$src")"
+  fi
+
+  local skills_repo_dir="$src_root/.agent/skills/antigravity-awesome-skills"
+  local repo_root=""
+  local skills_root=""
+  if [ -d "$skills_repo_dir/skills" ]; then
+    repo_root="$skills_repo_dir"
+    skills_root="$skills_repo_dir/skills"
+  elif [ -d "$skills_repo_dir" ]; then
+    repo_root="$skills_repo_dir"
+    skills_root="$skills_repo_dir"
+  elif [ -d "$src_root/.agent/skills/skills" ]; then
+    repo_root="$src_root/.agent/skills"
+    skills_root="$src_root/.agent/skills/skills"
+  elif [ -d "$src_root/.agent/skills" ]; then
+    repo_root="$src_root/.agent/skills"
+    skills_root="$src_root/.agent/skills"
+  fi
+
+  if [ -z "$skills_root" ]; then
+    log_info "未检测到来源 skills，跳过安装"
+    return 0
+  fi
+
+  local target_root="$root/.agent/skills"
+  local abs_skills_root
+  abs_skills_root="$(abs_path "$skills_root")"
+  local abs_target_root
+  abs_target_root="$(abs_path "$target_root")"
+  if [ "$abs_skills_root" = "$abs_target_root" ]; then
+    log_info "skills 来源与目标一致，跳过安装：$skills_root"
+    return 0
+  fi
+
+  log_info "开始安装 Awesome Skills（扁平化）：$skills_root -> $target_root/"
+  local f
+  while IFS= read -r -d '' f; do
+    local rel
+    rel="${f#$skills_root/}"
+    case "$rel" in
+      .git|.git/*|.github|.github/*) continue ;;
+    esac
+    install_file "$f" "$target_root/$rel" "$root" "$ts"
+  done < <(find "$skills_root" -type f -print0)
+
+  if [ -n "$repo_root" ]; then
+    if [ -d "$repo_root/scripts" ]; then
+      log_info "开始安装 skills 脚本目录：$repo_root/scripts -> $target_root/scripts/"
+      while IFS= read -r -d '' f; do
+        local rel
+        rel="${f#$repo_root/scripts/}"
+        install_file "$f" "$target_root/scripts/$rel" "$root" "$ts"
+      done < <(find "$repo_root/scripts" -type f -print0)
+    fi
+
+    if [ -f "$repo_root/skills_index.json" ]; then
+      install_file "$repo_root/skills_index.json" "$target_root/skills_index.json" "$root" "$ts"
+    fi
+
+    if [ -f "$repo_root/README.md" ]; then
+      install_file "$repo_root/README.md" "$target_root/README.md" "$root" "$ts"
+    fi
+  fi
+}
+
 # 安装/生成 .editorconfig
 install_editorconfig() {
   local root="$1"
@@ -862,6 +1004,28 @@ print_summary() {
     log_warn "缺失：$root/.editorconfig"
   fi
 
+  if [ -d "$root/.context" ]; then
+    log_info "已存在：$root/.context/"
+  else
+    log_warn "缺失：$root/.context/"
+  fi
+
+  if [ -d "$root/.agent/workflows" ]; then
+    log_info "已存在：$root/.agent/workflows/"
+  else
+    log_warn "缺失：$root/.agent/workflows/"
+  fi
+
+  if [ "$NO_SKILLS" = "1" ]; then
+    log_info "已跳过：$root/.agent/skills/"
+  else
+    if [ -d "$root/.agent/skills" ]; then
+      log_info "已存在：$root/.agent/skills/"
+    else
+      log_warn "缺失：$root/.agent/skills/"
+    fi
+  fi
+
   if [ -d "$root/.git" ]; then
     if [ -f "$root/.git/hooks/pre-commit" ]; then
       log_info "已存在：$root/.git/hooks/pre-commit"
@@ -892,6 +1056,9 @@ main() {
 
   log_info "=== setup_agent_rules 开始 ==="
   install_rules "$abs_root" "$ts"
+  install_workspace_context "$abs_root" "$ts"
+  install_agent_workflows "$abs_root" "$ts"
+  install_agent_skills "$abs_root" "$ts"
   install_script_templates "$abs_root" "$ts"
   install_editorconfig "$abs_root" "$ts"
   install_pre_commit "$abs_root" "$ts"

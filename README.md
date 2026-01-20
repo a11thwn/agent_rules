@@ -7,8 +7,9 @@ OpenCode 优先，兼容 Antigravity 和 Cursor/VS Code。
 `bash setup_agent_rules.sh`  
 
 ## 一键初始化（推荐）
-- wget：`wget -O init_agent_rules.sh <raw-url> && bash init_agent_rules.sh --verify`  
-- curl：`curl -fsSL <raw-url> | bash -s -- --verify`  
+- wget：`wget -O init_agent_rules.sh https://raw.githubusercontent.com/a11thwn/agent_rules/main/init_agent_rules.sh && bash init_agent_rules.sh --verify`  
+- curl：`curl -fsSL https://raw.githubusercontent.com/a11thwn/agent_rules/main/init_agent_rules.sh | bash -s -- --verify`  
+- 跳过技能：追加 `--no-skills`  
 
 ## 维护与生成
 - 重新生成 `init_agent_rules.sh`：`bash tools/build_init.sh`  
@@ -17,7 +18,23 @@ OpenCode 优先，兼容 Antigravity 和 Cursor/VS Code。
 - 规则安装到：`.agent/rules/*.mdc`
 - 可选同步到：`.cursor/rules/*.mdc`（默认开启，可用 `--no-cursor` 关闭）
 - 生成：`AGENTS.md`、`.editorconfig`
+- 生成：`.context/`、`.agent/workflows/`
+- 安装：`.agent/skills/`（默认）
+- 技能扁平化：`.agent/skills/<skill>/SKILL.md`
 - 若存在 `.git/`：生成 `pre-commit` 钩子
+
+## 集成增强
+- Awesome Skills：来源 `sickn33/antigravity-awesome-skills`
+- 安装目录：`.agent/skills/`
+- 工作区模板：参考 `antigravity-workspace-template`
+- 新增目录：`.context/`、`.agent/workflows/`
+
+## 给 Agent 的一条可复制指令
+把下面整段发给 Agent，它会在当前目录执行安装：  
+```
+请在当前目录执行：curl -fsSL https://raw.githubusercontent.com/a11thwn/agent_rules/main/init_agent_rules.sh | bash -s -- --verify
+```
+如需跳过技能：在命令末尾追加 `--no-skills`  
 
 ## OpenCode 规则使用
 
@@ -41,4 +58,3 @@ cp -r opencode_rules/scripts/templates /your/project/root/scripts/
 - **Agent Skills**：可重用的行为模式（code-review、bug-fix、refactor）
 
 详细说明请参考 `opencode_rules/README.md`。
-

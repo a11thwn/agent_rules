@@ -5,6 +5,86 @@
 
 ---
 
+## [2026-01-20] - 修复 Awesome Skills 扁平化安装
+### 问题描述
+- skills 目录嵌套为 `.agent/skills/antigravity-awesome-skills/skills`
+- Antigravity 无法识别技能
+
+### 分析原因
+- 安装脚本直接复制/克隆仓库根目录
+- 未将 `skills/*` 扁平化到 `.agent/skills/`
+
+### 解决方案
+- 安装时将 `skills/*` 扁平化到 `.agent/skills/`
+- 保留 `scripts/`、`skills_index.json`、`README.md`
+
+### 改动内容
+- 更新 `setup_agent_rules.sh`：技能扁平化安装
+- 更新 `tools/build_init.sh` 与 `init_agent_rules.sh`：临时目录克隆后扁平化
+- 更新 `README.md`：补充扁平化说明
+
+### 影响范围
+- 新项目默认可识别 skills
+- 旧项目需重新安装或手动调整
+
+### 后续计划
+- 无
+
+## [2026-01-20] - 补充 README 一键安装指令
+### 问题描述
+- 需要在 README 提供可复制的安装指令
+- 便于直接交给 Agent 自动部署
+
+### 分析原因
+- README 中缺少明确的“可复制指令”区块
+
+### 解决方案
+- 增加一条可复制的 Agent 安装指令
+- 保留 `--no-skills` 可选说明
+- 使用仓库实际 raw 地址示例
+
+### 改动内容
+- 更新 `README.md`：新增“给 Agent 的一条可复制指令”
+- 重新生成 `init_agent_rules.sh`：同步内嵌 README
+
+### 影响范围
+- 文档说明更清晰
+- 不影响安装逻辑
+
+### 后续计划
+- 无
+
+## [2026-01-20] - 集成 Awesome Skills 与工作区模板增强
+### 问题描述
+- 现有规则库缺少稳定技能集合
+- 新项目初始化缺少模板配置
+- 一键部署未覆盖技能安装
+
+### 分析原因
+- Awesome Skills 未纳入安装链路
+- 工作区模板未同步到本库
+- init 脚本缺少技能拉取
+
+### 解决方案
+- 引入 Awesome Skills 作为内置来源
+- 新增 `.context` 与 `.agent/workflows`
+- 安装脚本补充技能步骤
+
+### 改动内容
+- 新增 `.context/*.md` 与 `.agent/workflows/*.md`
+- 拉取 `antigravity-awesome-skills` 到 `.agent/skills/antigravity-awesome-skills`
+- 更新 `setup_agent_rules.sh`：安装技能与模板目录
+- 更新 `tools/build_init.sh` 与 `init_agent_rules.sh`：支持 `--no-skills`
+- 更新 `README.md`、`PACKING.md`：补充部署说明
+
+### 影响范围
+- 新项目默认包含工作区模板
+- 一键初始化可安装技能库
+- 可用 `--no-skills` 跳过下载
+
+### 后续计划
+- 如需更多模板文件，再评估范围
+
 ## [2026-01-04] - 修复 OpenCode 配置模板错误字段
 ### 问题描述
 - `opencode_rules/opencode.json` 配置模板包含 OpenCode 不支持的字段

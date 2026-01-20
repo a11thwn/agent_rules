@@ -8,6 +8,8 @@
 - `setup_agent_rules.sh`  
 - `AGENTS.md`  
 - `Debugging-Rules.md`  
+- `.context/*.md`  
+- `.agent/workflows/*.md`  
 - `scripts/templates/*.sh`  
 - `.prettierrc`、`.prettierignore`（如需要统一格式化约束）  
 
@@ -15,3 +17,4 @@
 - `.git/`、`.DS_Store`  
 - `.backup/`、`logs/`、临时测试目录  
 - 任何项目私有配置（例如业务 `.env`）  
+- `antigravity-awesome-skills`（建议初始化时 git clone）  

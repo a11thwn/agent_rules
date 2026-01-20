@@ -13,6 +13,7 @@ DRY_RUN="0"
 SYNC_CURSOR="1"
 VERIFY="0"
 MANIFEST="0"
+NO_SKILLS="0"
 
 # 输出 INFO 日志
 log_info() { echo "[INFO] $*"; }
@@ -25,12 +26,13 @@ log_error() { echo "[ERROR] $*" >&2; }
 usage() {
   cat <<'USAGE'
 用法：
-  bash init_agent_rules.sh [--dir <path>] [--force] [--no-cursor] [--dry-run] [--verify] [--manifest] [--help]
+  bash init_agent_rules.sh [--dir <path>] [--force] [--no-cursor] [--no-skills] [--dry-run] [--verify] [--manifest] [--help]
 
 参数：
   --dir <path>     指定输出/安装目录（默认：当前目录）
   --force          允许覆盖已存在文件（不备份）
   --no-cursor      不同步到 .cursor/rules/
+  --no-skills      不安装 Awesome Skills
   --dry-run        只打印将创建/覆盖/跳过的清单，不实际写入
   --verify         执行后做一次自检并输出结果
   --manifest       生成 MANIFEST.txt 与 MANIFEST.sha256（可选）
@@ -151,6 +153,9 @@ parse_args() {
       --no-cursor)
         SYNC_CURSOR="0"
         ;;
+      --no-skills)
+        NO_SKILLS="1"
+        ;;
       --dry-run)
         DRY_RUN="1"
         ;;
@@ -175,6 +180,11 @@ parse_args() {
 # 写出仓库文件（内嵌内容）
 emit_repo_files() {
   EMBEDDED_FILES=(
+    .agent/workflows/openspec-apply.md
+    .agent/workflows/openspec-archive.md
+    .agent/workflows/openspec-proposal.md
+    .context/coding_style.md
+    .context/system_prompt.md
     .editorconfig
     .gitignore
     .prettierignore
@@ -196,6 +206,118 @@ emit_repo_files() {
     scripts/templates/test.sh
     tools/build_init.sh
   )
+
+  write_file ".agent/workflows/openspec-apply.md" <<'__AR_EOF_b594aa97c0e3__'
+---
+description: 需求实施阶段流程
+---
+<!-- 说明：OpenSpec 实施流程指引 -->
+<!-- OPENSPEC:START -->
+**守则**
+- 改动尽量小
+- 只做已批准项
+- 先验证再勾选
+
+**步骤**
+1. 读 proposal/tasks
+2. 按序实现任务
+3. 完成后再勾选
+4. 更新任务状态
+5. 需要时补测试
+
+**参考**
+- openspec show 可查
+- 信息不足先提问
+<!-- OPENSPEC:END -->
+__AR_EOF_b594aa97c0e3__
+
+  write_file ".agent/workflows/openspec-archive.md" <<'__AR_EOF_5c4eb50fd669__'
+---
+description: 需求归档阶段流程
+---
+<!-- 说明：OpenSpec 归档流程指引 -->
+<!-- OPENSPEC:START -->
+**守则**
+- 确认变更已发布
+- 归档前先核对
+- 不确定就停下
+
+**步骤**
+1. 确认 change-id
+2. 验证变更状态
+3. 执行归档操作
+4. 检查规格更新
+5. 记录归档结果
+
+**参考**
+- openspec list 用于查
+- 失败先输出日志
+<!-- OPENSPEC:END -->
+__AR_EOF_5c4eb50fd669__
+
+  write_file ".agent/workflows/openspec-proposal.md" <<'__AR_EOF_3368586c5764__'
+---
+description: 需求提案阶段流程
+---
+<!-- 说明：OpenSpec 提案流程指引 -->
+<!-- OPENSPEC:START -->
+**守则**
+- 先澄清范围
+- 仅写文档
+- 有歧义先问
+
+**步骤**
+1. 读项目上下文
+2. 定义 change-id
+3. 产出 proposal/tasks/design
+4. 拆分可验任务
+5. 自检格式与风险
+
+**参考**
+- 需要时再用 openspec
+- 无 openspec 就说明
+<!-- OPENSPEC:END -->
+__AR_EOF_3368586c5764__
+
+  write_file ".context/coding_style.md" <<'__AR_EOF_21eb010ec72b__'
+<!-- 说明：编码风格补充规则 -->
+# 编码风格补充
+
+## 结构
+- 目录层级清晰
+- 文件不过长
+- 避免循环依赖
+
+## 代码
+- 强类型优先
+- 函数前写中文注释
+- 复杂逻辑加说明
+
+## 工具
+- 运行走 scripts/*.sh
+- 日志落到 logs/
+__AR_EOF_21eb010ec72b__
+
+  write_file ".context/system_prompt.md" <<'__AR_EOF_d6d94f8911f0__'
+<!-- 说明：工作区系统提示（简版） -->
+# 系统提示（工作区）
+
+## 核心目标
+- 对齐用户目标
+- 保持改动最小
+- 必要时先提问
+
+## 必读文件
+- AGENTS.md
+- Debugging-Rules.md
+- README.md（如存在）
+
+## 行为要求
+- 复杂任务先给计划
+- 输出中文
+- 命令先 dry-run
+- 变更需写 CHANGELOG.md
+__AR_EOF_d6d94f8911f0__
 
   write_file ".editorconfig" <<'__AR_EOF_0947e2727d6b__'
 # EditorConfig is awesome: https://editorconfig.org
@@ -690,8 +812,164 @@ __AR_EOF_a54ff182c7e8__
   write_file "CHANGELOG.md" <<'__AR_EOF_06572a96a58d__'
 # CHANGELOG
 
-此文件用于记录项目的所有修改历史，确保每次修复、优化或新增功能都有迹可循。  
+此文件用于记录项目的所有修改历史，确保每次修复、优化或新增功能都有迹可循。
 请按照以下格式填写：
+
+---
+
+## [2026-01-20] - 修复 Awesome Skills 扁平化安装
+### 问题描述
+- skills 目录嵌套为 `.agent/skills/antigravity-awesome-skills/skills`
+- Antigravity 无法识别技能
+
+### 分析原因
+- 安装脚本直接复制/克隆仓库根目录
+- 未将 `skills/*` 扁平化到 `.agent/skills/`
+
+### 解决方案
+- 安装时将 `skills/*` 扁平化到 `.agent/skills/`
+- 保留 `scripts/`、`skills_index.json`、`README.md`
+
+### 改动内容
+- 更新 `setup_agent_rules.sh`：技能扁平化安装
+- 更新 `tools/build_init.sh` 与 `init_agent_rules.sh`：临时目录克隆后扁平化
+- 更新 `README.md`：补充扁平化说明
+
+### 影响范围
+- 新项目默认可识别 skills
+- 旧项目需重新安装或手动调整
+
+### 后续计划
+- 无
+
+## [2026-01-20] - 补充 README 一键安装指令
+### 问题描述
+- 需要在 README 提供可复制的安装指令
+- 便于直接交给 Agent 自动部署
+
+### 分析原因
+- README 中缺少明确的“可复制指令”区块
+
+### 解决方案
+- 增加一条可复制的 Agent 安装指令
+- 保留 `--no-skills` 可选说明
+- 使用仓库实际 raw 地址示例
+
+### 改动内容
+- 更新 `README.md`：新增“给 Agent 的一条可复制指令”
+- 重新生成 `init_agent_rules.sh`：同步内嵌 README
+
+### 影响范围
+- 文档说明更清晰
+- 不影响安装逻辑
+
+### 后续计划
+- 无
+
+## [2026-01-20] - 集成 Awesome Skills 与工作区模板增强
+### 问题描述
+- 现有规则库缺少稳定技能集合
+- 新项目初始化缺少模板配置
+- 一键部署未覆盖技能安装
+
+### 分析原因
+- Awesome Skills 未纳入安装链路
+- 工作区模板未同步到本库
+- init 脚本缺少技能拉取
+
+### 解决方案
+- 引入 Awesome Skills 作为内置来源
+- 新增 `.context` 与 `.agent/workflows`
+- 安装脚本补充技能步骤
+
+### 改动内容
+- 新增 `.context/*.md` 与 `.agent/workflows/*.md`
+- 拉取 `antigravity-awesome-skills` 到 `.agent/skills/antigravity-awesome-skills`
+- 更新 `setup_agent_rules.sh`：安装技能与模板目录
+- 更新 `tools/build_init.sh` 与 `init_agent_rules.sh`：支持 `--no-skills`
+- 更新 `README.md`、`PACKING.md`：补充部署说明
+
+### 影响范围
+- 新项目默认包含工作区模板
+- 一键初始化可安装技能库
+- 可用 `--no-skills` 跳过下载
+
+### 后续计划
+- 如需更多模板文件，再评估范围
+
+## [2026-01-04] - 修复 OpenCode 配置模板错误字段
+### 问题描述
+- `opencode_rules/opencode.json` 配置模板包含 OpenCode 不支持的字段
+- 在其他项目中使用时报错：`Unrecognized keys: "temperature", "max_steps", "agents"`
+- 导致配置文件验证失败，OpenCode 无法正常启动
+
+### 分析原因
+- 配置模板误用了非官方的配置项：
+  - `temperature` - 不是 OpenCode 配置项
+  - `max_steps` - 不是 OpenCode 配置项
+  - `agents` - 正确字段应为 `agent`（单数），且格式不同
+- 这些字段可能是从其他 AI 工具配置中误复制而来
+
+### 解决方案
+- 根据官方文档 [OpenCode Config](https://opencode.ai/docs/config/) 移除无效字段
+- 保留有效的配置项：
+  - `instructions` - 规则文件加载 ✓
+  - `permission` - 权限配置 ✓
+  - `tools` - 工具配置 ✓
+
+### 改动内容
+- 修改 `opencode_rules/opencode.json`：
+  - 移除 `temperature: 0.3` 字段（第 38 行）
+  - 移除 `max_steps: 50` 字段（第 39 行）
+  - 移除整个 `agents` 对象（第 40-56 行）
+
+### 影响范围
+- 修复后的配置符合 OpenCode 官方规范，可在任何项目中正常使用
+- 不影响原有功能，仅移除无效配置项
+- OpenCode Agent 协作、并行任务等功能仍可正常使用
+
+### 后续计划
+- 已完成，配置验证通过
+
+---
+
+## [2026-01-04] - 新增 OpenCode 规则支持
+### 问题描述
+- 原有规则仅支持 Antigravity 和 Cursor/VS Code，未适配 OpenCode 平台
+- OpenCode 拥有独特的 Agent 协作机制、并行任务和会话管理功能，原有规则无法充分利用
+
+### 分析原因
+- OpenCode 采用不同的规则加载方式（`AGENTS.md` 在项目根目录自动加载）
+- OpenCode 支持 background_task 并行执行、多 Agent 协作、会话历史等功能
+- 原有规则未针对 OpenCode 特性进行优化
+
+### 解决方案
+- 创建 `opencode_rules/` 目录，存放 OpenCode 专用规则
+- 保留原有代码不变，采用增量策略添加 OpenCode 支持
+- 新增 OpenCode Agent 协作规范、Background Task 最佳实践、会话管理指南
+- 提供可复用的 Agent Skills（code-review、bug-fix、refactor）
+
+### 改动内容
+- 新增 `opencode_rules/` 目录结构
+- 新增 `opencode_rules/AGENTS.md` - OpenCode 专用主规则（继承原有核心约束）
+- 新增 `opencode_rules/opencode.json` - OpenCode 配置模板（权限、工具、Agent 配置）
+- 新增 `opencode_rules/SKILLS/` 目录和 3 个技能文件
+  - `code-review.mdc` - 代码审查技能
+  - `bug-fix.mdc` - Bug 修复技能
+  - `refactor.mdc` - 重构技能
+- 新增 `opencode_rules/scripts/templates/opencode_parallel_tasks.sh` - 并行任务脚本模板
+- 新增 `opencode_rules/README.md` - OpenCode 规则使用说明
+- 修改主 `README.md` - 添加 OpenCode 规则说明章节
+
+### 影响范围
+- 原有规则和安装机制保持不变，向后兼容
+- 新增的 OpenCode 规则可选使用，不影响现有工作流
+- 支持 OpenCode 专属功能：Agent 协作、并行任务、会话管理
+
+### 后续计划
+- 收集 OpenCode 使用反馈，持续优化规则
+- 考虑添加更多 Agent Skills（如 frontend-ui-ux、document-writer）
+- 探索 OpenCode MCP 服务器集成
 
 ---
 
@@ -876,6 +1154,8 @@ __AR_EOF_cb59ef7d0bbd__
 - `setup_agent_rules.sh`  
 - `AGENTS.md`  
 - `Debugging-Rules.md`  
+- `.context/*.md`  
+- `.agent/workflows/*.md`  
 - `scripts/templates/*.sh`  
 - `.prettierrc`、`.prettierignore`（如需要统一格式化约束）  
 
@@ -883,29 +1163,70 @@ __AR_EOF_cb59ef7d0bbd__
 - `.git/`、`.DS_Store`  
 - `.backup/`、`logs/`、临时测试目录  
 - 任何项目私有配置（例如业务 `.env`）  
+- `antigravity-awesome-skills`（建议初始化时 git clone）  
 __AR_EOF_197faf93c64f__
 
   write_file "README.md" <<'__AR_EOF_b33563055168__'
 ## 说明
-本仓库用于维护个人 AI 规则与项目初始化脚本。  
-Antigravity 优先，兼容 Cursor/VS Code。  
+本仓库用于维护个人 AI 规则与项目初始化脚本。
+OpenCode 优先，兼容 Antigravity 和 Cursor/VS Code。  
 
 ## 最简用法
 把 `setup_agent_rules.sh` 复制到任意项目根目录并执行：  
 `bash setup_agent_rules.sh`  
 
 ## 一键初始化（推荐）
-- wget：`wget -O init_agent_rules.sh <raw-url> && bash init_agent_rules.sh --verify`  
-- curl：`curl -fsSL <raw-url> | bash -s -- --verify`  
+- wget：`wget -O init_agent_rules.sh https://raw.githubusercontent.com/a11thwn/agent_rules/main/init_agent_rules.sh && bash init_agent_rules.sh --verify`  
+- curl：`curl -fsSL https://raw.githubusercontent.com/a11thwn/agent_rules/main/init_agent_rules.sh | bash -s -- --verify`  
+- 跳过技能：追加 `--no-skills`  
 
 ## 维护与生成
 - 重新生成 `init_agent_rules.sh`：`bash tools/build_init.sh`  
 
 ## 安装结果
-- 规则安装到：`.agent/rules/*.mdc`  
-- 可选同步到：`.cursor/rules/*.mdc`（默认开启，可用 `--no-cursor` 关闭）  
-- 生成：`AGENTS.md`、`.editorconfig`  
-- 若存在 `.git/`：生成 `pre-commit` 钩子  
+- 规则安装到：`.agent/rules/*.mdc`
+- 可选同步到：`.cursor/rules/*.mdc`（默认开启，可用 `--no-cursor` 关闭）
+- 生成：`AGENTS.md`、`.editorconfig`
+- 生成：`.context/`、`.agent/workflows/`
+- 安装：`.agent/skills/`（默认）
+- 技能扁平化：`.agent/skills/<skill>/SKILL.md`
+- 若存在 `.git/`：生成 `pre-commit` 钩子
+
+## 集成增强
+- Awesome Skills：来源 `sickn33/antigravity-awesome-skills`
+- 安装目录：`.agent/skills/`
+- 工作区模板：参考 `antigravity-workspace-template`
+- 新增目录：`.context/`、`.agent/workflows/`
+
+## 给 Agent 的一条可复制指令
+把下面整段发给 Agent，它会在当前目录执行安装：  
+```
+请在当前目录执行：curl -fsSL https://raw.githubusercontent.com/a11thwn/agent_rules/main/init_agent_rules.sh | bash -s -- --verify
+```
+如需跳过技能：在命令末尾追加 `--no-skills`  
+
+## OpenCode 规则使用
+
+### 快速开始
+将 `opencode_rules/` 目录中的文件复制到项目根目录：
+
+```bash
+# 复制主规则和配置
+cp opencode_rules/AGENTS.md /your/project/root/
+cp opencode_rules/opencode.json /your/project/root/
+
+# 可选：复制技能和脚本
+cp -r opencode_rules/SKILLS /your/project/root/
+cp -r opencode_rules/scripts/templates /your/project/root/scripts/
+```
+
+### OpenCode 专用功能
+- **Agent 协作**：使用 explore、librarian、oracle 代理进行并行探索
+- **Background Task**：多任务并行执行，大幅提升效率
+- **会话管理**：利用历史会话快速查找解决方案
+- **Agent Skills**：可重用的行为模式（code-review、bug-fix、refactor）
+
+详细说明请参考 `opencode_rules/README.md`。
 __AR_EOF_b33563055168__
 
   write_file "scripts/templates/build.sh" <<'__AR_EOF_45b46c36a382__'
@@ -993,6 +1314,7 @@ SYNC_CURSOR="1"
 FORCE="0"
 DRY_RUN="0"
 NO_BACKUP="0"
+NO_SKILLS="0"
 
 # 临时文件列表（用于退出时清理）
 TMP_FILES=()
@@ -1008,12 +1330,13 @@ log_error() { echo "[ERROR] $*" >&2; }
 usage() {
   cat <<'EOF'
 用法：
-  ./setup_agent_rules.sh [--dir <path>] [--src <path>] [--no-cursor] [--force] [--no-backup] [--dry-run] [--help]
+  ./setup_agent_rules.sh [--dir <path>] [--src <path>] [--no-cursor] [--no-skills] [--force] [--no-backup] [--dry-run] [--help]
 
 参数：
   --dir <path>       指定安装到哪个项目根目录（默认：当前目录）
   --src <path>       指定外部规则目录（模式 B）；默认使用脚本同目录（模式 A），找不到则使用内置规则
   --no-cursor        不同步到 .cursor/rules/
+  --no-skills        不安装 Awesome Skills
   --force            允许覆盖已有文件（默认不覆盖）
   --no-backup        覆盖时不备份（默认覆盖会备份到 .backup/<timestamp>/）
   --dry-run          仅输出将创建/覆盖的清单，不做实际写入
@@ -1633,6 +1956,9 @@ parse_args() {
       --no-cursor)
         SYNC_CURSOR="0"
         ;;
+      --no-skills)
+        NO_SKILLS="1"
+        ;;
       --force)
         FORCE="1"
         ;;
@@ -1762,6 +2088,143 @@ install_rules() {
   fi
 }
 
+# 安装工作区上下文目录（.context）
+install_workspace_context() {
+  local root="$1"
+  local ts="$2"
+
+  local src
+  src="$(abs_path "$(pick_source_dir)")"
+
+  local src_root="$src"
+  if [ "$(basename "$src")" = "rules_src" ]; then
+    src_root="$(dirname "$src")"
+  fi
+
+  local context_src_dir="$src_root/.context"
+  if [ ! -d "$context_src_dir" ]; then
+    log_info "未检测到来源 .context，跳过：$context_src_dir"
+    return 0
+  fi
+
+  log_info "开始安装工作区上下文：$context_src_dir -> $root/.context/"
+  local f
+  while IFS= read -r -d '' f; do
+    local rel
+    rel="${f#$context_src_dir/}"
+    install_file "$f" "$root/.context/$rel" "$root" "$ts"
+  done < <(find "$context_src_dir" -type f -print0)
+}
+
+# 安装工作流模板目录（.agent/workflows）
+install_agent_workflows() {
+  local root="$1"
+  local ts="$2"
+
+  local src
+  src="$(abs_path "$(pick_source_dir)")"
+
+  local src_root="$src"
+  if [ "$(basename "$src")" = "rules_src" ]; then
+    src_root="$(dirname "$src")"
+  fi
+
+  local workflows_src_dir="$src_root/.agent/workflows"
+  if [ ! -d "$workflows_src_dir" ]; then
+    log_info "未检测到来源 .agent/workflows，跳过：$workflows_src_dir"
+    return 0
+  fi
+
+  log_info "开始安装工作流模板：$workflows_src_dir -> $root/.agent/workflows/"
+  local f
+  while IFS= read -r -d '' f; do
+    local rel
+    rel="${f#$workflows_src_dir/}"
+    install_file "$f" "$root/.agent/workflows/$rel" "$root" "$ts"
+  done < <(find "$workflows_src_dir" -type f -print0)
+}
+
+# 安装 Awesome Skills（可选）
+install_agent_skills() {
+  local root="$1"
+  local ts="$2"
+
+  if [ "$NO_SKILLS" = "1" ]; then
+    log_info "已关闭技能安装（--no-skills）。"
+    return 0
+  fi
+
+  local src
+  src="$(abs_path "$(pick_source_dir)")"
+
+  local src_root="$src"
+  if [ "$(basename "$src")" = "rules_src" ]; then
+    src_root="$(dirname "$src")"
+  fi
+
+  local skills_repo_dir="$src_root/.agent/skills/antigravity-awesome-skills"
+  local repo_root=""
+  local skills_root=""
+  if [ -d "$skills_repo_dir/skills" ]; then
+    repo_root="$skills_repo_dir"
+    skills_root="$skills_repo_dir/skills"
+  elif [ -d "$skills_repo_dir" ]; then
+    repo_root="$skills_repo_dir"
+    skills_root="$skills_repo_dir"
+  elif [ -d "$src_root/.agent/skills/skills" ]; then
+    repo_root="$src_root/.agent/skills"
+    skills_root="$src_root/.agent/skills/skills"
+  elif [ -d "$src_root/.agent/skills" ]; then
+    repo_root="$src_root/.agent/skills"
+    skills_root="$src_root/.agent/skills"
+  fi
+
+  if [ -z "$skills_root" ]; then
+    log_info "未检测到来源 skills，跳过安装"
+    return 0
+  fi
+
+  local target_root="$root/.agent/skills"
+  local abs_skills_root
+  abs_skills_root="$(abs_path "$skills_root")"
+  local abs_target_root
+  abs_target_root="$(abs_path "$target_root")"
+  if [ "$abs_skills_root" = "$abs_target_root" ]; then
+    log_info "skills 来源与目标一致，跳过安装：$skills_root"
+    return 0
+  fi
+
+  log_info "开始安装 Awesome Skills（扁平化）：$skills_root -> $target_root/"
+  local f
+  while IFS= read -r -d '' f; do
+    local rel
+    rel="${f#$skills_root/}"
+    case "$rel" in
+      .git|.git/*|.github|.github/*) continue ;;
+    esac
+    install_file "$f" "$target_root/$rel" "$root" "$ts"
+  done < <(find "$skills_root" -type f -print0)
+
+  if [ -n "$repo_root" ]; then
+    if [ -d "$repo_root/scripts" ]; then
+      log_info "开始安装 skills 脚本目录：$repo_root/scripts -> $target_root/scripts/"
+      while IFS= read -r -d '' f; do
+        local rel
+        rel="${f#$repo_root/scripts/}"
+        install_file "$f" "$target_root/scripts/$rel" "$root" "$ts"
+      done < <(find "$repo_root/scripts" -type f -print0)
+    fi
+
+    if [ -f "$repo_root/skills_index.json" ]; then
+      install_file "$repo_root/skills_index.json" "$target_root/skills_index.json" "$root" "$ts"
+    fi
+
+    if [ -f "$repo_root/README.md" ]; then
+      install_file "$repo_root/README.md" "$target_root/README.md" "$root" "$ts"
+    fi
+  fi
+}
+
 # 安装/生成 .editorconfig
 install_editorconfig() {
   local root="$1"
@@ -1841,6 +2304,28 @@ print_summary() {
     log_warn "缺失：$root/.editorconfig"
   fi
 
+  if [ -d "$root/.context" ]; then
+    log_info "已存在：$root/.context/"
+  else
+    log_warn "缺失：$root/.context/"
+  fi
+
+  if [ -d "$root/.agent/workflows" ]; then
+    log_info "已存在：$root/.agent/workflows/"
+  else
+    log_warn "缺失：$root/.agent/workflows/"
+  fi
+
+  if [ "$NO_SKILLS" = "1" ]; then
+    log_info "已跳过：$root/.agent/skills/"
+  else
+    if [ -d "$root/.agent/skills" ]; then
+      log_info "已存在：$root/.agent/skills/"
+    else
+      log_warn "缺失：$root/.agent/skills/"
+    fi
+  fi
+
   if [ -d "$root/.git" ]; then
     if [ -f "$root/.git/hooks/pre-commit" ]; then
       log_info "已存在：$root/.git/hooks/pre-commit"
@@ -1871,6 +2356,9 @@ main() {
 
   log_info "=== setup_agent_rules 开始 ==="
   install_rules "$abs_root" "$ts"
+  install_workspace_context "$abs_root" "$ts"
+  install_agent_workflows "$abs_root" "$ts"
+  install_agent_skills "$abs_root" "$ts"
   install_script_templates "$abs_root" "$ts"
   install_editorconfig "$abs_root" "$ts"
   install_pre_commit "$abs_root" "$ts"
@@ -1959,6 +2447,20 @@ collect_files() {
     done < <(find "$REPO_ROOT/.vscode" -maxdepth 1 -type f -name "*.json" -print0)
   fi
 
+  # 工作区上下文（文本）
+  if [ -d "$REPO_ROOT/.context" ]; then
+    while IFS= read -r -d '' f; do
+      files+=("${f#"$REPO_ROOT/"}")
+    done < <(find "$REPO_ROOT/.context" -maxdepth 1 -type f -name "*.md" -print0)
+  fi
+
+  # 工作流模板（文本）
+  if [ -d "$REPO_ROOT/.agent/workflows" ]; then
+    while IFS= read -r -d '' f; do
+      files+=("${f#"$REPO_ROOT/"}")
+    done < <(find "$REPO_ROOT/.agent/workflows" -maxdepth 1 -type f -name "*.md" -print0)
+  fi
+
   # 脚本模板（文本）
   if [ -d "$REPO_ROOT/scripts/templates" ]; then
     while IFS= read -r -d '' f; do
@@ -1999,6 +2501,7 @@ DRY_RUN="0"
 SYNC_CURSOR="1"
 VERIFY="0"
 MANIFEST="0"
+NO_SKILLS="0"
 
 # 输出 INFO 日志
 log_info() { echo "[INFO] $*"; }
@@ -2011,12 +2514,13 @@ log_error() { echo "[ERROR] $*" >&2; }
 usage() {
   cat <<'USAGE'
 用法：
-  bash init_agent_rules.sh [--dir <path>] [--force] [--no-cursor] [--dry-run] [--verify] [--manifest] [--help]
+  bash init_agent_rules.sh [--dir <path>] [--force] [--no-cursor] [--no-skills] [--dry-run] [--verify] [--manifest] [--help]
 
 参数：
   --dir <path>     指定输出/安装目录（默认：当前目录）
   --force          允许覆盖已存在文件（不备份）
   --no-cursor      不同步到 .cursor/rules/
+  --no-skills      不安装 Awesome Skills
   --dry-run        只打印将创建/覆盖/跳过的清单，不实际写入
   --verify         执行后做一次自检并输出结果
   --manifest       生成 MANIFEST.txt 与 MANIFEST.sha256（可选）
@@ -2136,6 +2640,9 @@ parse_args() {
         ;;
       --no-cursor)
         SYNC_CURSOR="0"
+        ;;
+      --no-skills)
+        NO_SKILLS="1"
         ;;
       --dry-run)
         DRY_RUN="1"
@@ -2349,6 +2856,65 @@ install_rules() {
   fi
 }
 
+# 安装 Awesome Skills（可选）
+install_agent_skills() {
+  local abs_root
+  abs_root="$(abs_dir "$ROOT_DIR")"
+
+  if [ "$NO_SKILLS" = "1" ]; then
+    log_info "已关闭技能安装（--no-skills）。"
+    return 0
+  fi
+
+  local target="$abs_root/.agent/skills"
+  local temp_dir="$abs_root/.agent/skills-temp"
+  if [ "$DRY_RUN" = "1" ]; then
+    log_info "[DRY-RUN] 将克隆 Awesome Skills 并扁平化到：$target"
+    return 0
+  fi
+
+  if [ -d "$target" ] && [ -n "$(ls -A "$target" 2>/dev/null)" ]; then
+    log_warn "skills 目录非空，跳过安装：$target"
+    return 0
+  fi
+
+  if ! command -v git >/dev/null 2>&1; then
+    log_warn "缺少 git，跳过 skills 克隆。"
+    return 0
+  fi
+
+  if [ -d "$temp_dir" ]; then
+    rm -rf "$temp_dir"
+  fi
+
+  mkdir -p "$temp_dir"
+  if ! git clone --depth 1 https://github.com/sickn33/antigravity-awesome-skills "$temp_dir"; then
+    log_warn "skills 克隆失败，已跳过。"
+    rm -rf "$temp_dir"
+    return 0
+  fi
+
+  mkdir -p "$target"
+  if [ -d "$temp_dir/skills" ] && compgen -G "$temp_dir/skills/*" >/dev/null 2>&1; then
+    mv "$temp_dir/skills/"* "$target/"
+  fi
+
+  if [ -d "$temp_dir/scripts" ]; then
+    mv "$temp_dir/scripts" "$target/"
+  fi
+
+  if [ -f "$temp_dir/skills_index.json" ]; then
+    mv "$temp_dir/skills_index.json" "$target/"
+  fi
+
+  if [ -f "$temp_dir/README.md" ]; then
+    mv "$temp_dir/README.md" "$target/"
+  fi
+
+  rm -rf "$temp_dir"
+  log_info "已安装 Awesome Skills（扁平化）：$target"
+}
+
 # 安装 pre-commit 钩子（仅当存在 .git/）
 install_pre_commit() {
   local abs_root
@@ -2410,6 +2976,9 @@ verify_install() {
     "Debugging-Rules.md"
     ".agent/rules/AGENTS.mdc"
     ".agent/rules/Debugging-Rules.mdc"
+    ".context/system_prompt.md"
+    ".context/coding_style.md"
+    ".agent/workflows/openspec-apply.md"
     ".editorconfig"
     "scripts/templates/dev.sh"
   )
@@ -2432,6 +3001,14 @@ verify_install() {
     fi
   fi
 
+  if [ "$NO_SKILLS" != "1" ]; then
+    if [ -d "$abs_root/.agent/skills" ]; then
+      log_info "存在：.agent/skills/"
+    else
+      log_warn "缺失：.agent/skills/（可能跳过克隆）"
+    fi
+  fi
+
   if [ "$ok" = "1" ]; then
     log_info "自检通过"
   else
@@ -2449,6 +3026,8 @@ print_summary() {
     "AGENTS.md"
     "Debugging-Rules.md"
     ".agent/rules/"
+    ".context/"
+    ".agent/workflows/"
     ".cursor/rules/"
     "scripts/templates/"
     ".editorconfig"
@@ -2463,6 +3042,16 @@ print_summary() {
       log_warn "  - 缺失：$p"
     fi
   done
+
+  if [ "$NO_SKILLS" = "1" ]; then
+    log_info "  - 已跳过：.agent/skills/"
+  else
+    if [ -d "$abs_root/.agent/skills" ]; then
+      log_info "  - 存在：.agent/skills/"
+    else
+      log_warn "  - 缺失：.agent/skills/"
+    fi
+  fi
 
   if [ -d "$abs_root/.git" ]; then
     if [ -f "$abs_root/.git/hooks/pre-commit" ]; then
@@ -2491,6 +3080,7 @@ main() {
   emit_repo_files
   chmod_execs
   install_rules
+  install_agent_skills
   install_pre_commit
   write_manifest
 
@@ -2763,6 +3353,65 @@ install_rules() {
   fi
 }
 
+# 安装 Awesome Skills（可选）
+install_agent_skills() {
+  local abs_root
+  abs_root="$(abs_dir "$ROOT_DIR")"
+
+  if [ "$NO_SKILLS" = "1" ]; then
+    log_info "已关闭技能安装（--no-skills）。"
+    return 0
+  fi
+
+  local target="$abs_root/.agent/skills"
+  local temp_dir="$abs_root/.agent/skills-temp"
+  if [ "$DRY_RUN" = "1" ]; then
+    log_info "[DRY-RUN] 将克隆 Awesome Skills 并扁平化到：$target"
+    return 0
+  fi
+
+  if [ -d "$target" ] && [ -n "$(ls -A "$target" 2>/dev/null)" ]; then
+    log_warn "skills 目录非空，跳过安装：$target"
+    return 0
+  fi
+
+  if ! command -v git >/dev/null 2>&1; then
+    log_warn "缺少 git，跳过 skills 克隆。"
+    return 0
+  fi
+
+  if [ -d "$temp_dir" ]; then
+    rm -rf "$temp_dir"
+  fi
+
+  mkdir -p "$temp_dir"
+  if ! git clone --depth 1 https://github.com/sickn33/antigravity-awesome-skills "$temp_dir"; then
+    log_warn "skills 克隆失败，已跳过。"
+    rm -rf "$temp_dir"
+    return 0
+  fi
+
+  mkdir -p "$target"
+  if [ -d "$temp_dir/skills" ] && compgen -G "$temp_dir/skills/*" >/dev/null 2>&1; then
+    mv "$temp_dir/skills/"* "$target/"
+  fi
+
+  if [ -d "$temp_dir/scripts" ]; then
+    mv "$temp_dir/scripts" "$target/"
+  fi
+
+  if [ -f "$temp_dir/skills_index.json" ]; then
+    mv "$temp_dir/skills_index.json" "$target/"
+  fi
+
+  if [ -f "$temp_dir/README.md" ]; then
+    mv "$temp_dir/README.md" "$target/"
+  fi
+
+  rm -rf "$temp_dir"
+  log_info "已安装 Awesome Skills（扁平化）：$target"
+}
+
 # 安装 pre-commit 钩子（仅当存在 .git/）
 install_pre_commit() {
   local abs_root
@@ -2824,6 +3473,9 @@ verify_install() {
     "Debugging-Rules.md"
     ".agent/rules/AGENTS.mdc"
     ".agent/rules/Debugging-Rules.mdc"
+    ".context/system_prompt.md"
+    ".context/coding_style.md"
+    ".agent/workflows/openspec-apply.md"
     ".editorconfig"
     "scripts/templates/dev.sh"
   )
@@ -2846,6 +3498,14 @@ verify_install() {
     fi
   fi
 
+  if [ "$NO_SKILLS" != "1" ]; then
+    if [ -d "$abs_root/.agent/skills" ]; then
+      log_info "存在：.agent/skills/"
+    else
+      log_warn "缺失：.agent/skills/（可能跳过克隆）"
+    fi
+  fi
+
   if [ "$ok" = "1" ]; then
     log_info "自检通过"
   else
@@ -2863,6 +3523,8 @@ print_summary() {
     "AGENTS.md"
     "Debugging-Rules.md"
     ".agent/rules/"
+    ".context/"
+    ".agent/workflows/"
     ".cursor/rules/"
     "scripts/templates/"
     ".editorconfig"
@@ -2877,6 +3539,16 @@ print_summary() {
       log_warn "  - 缺失：$p"
     fi
   done
+
+  if [ "$NO_SKILLS" = "1" ]; then
+    log_info "  - 已跳过：.agent/skills/"
+  else
+    if [ -d "$abs_root/.agent/skills" ]; then
+      log_info "  - 存在：.agent/skills/"
+    else
+      log_warn "  - 缺失：.agent/skills/"
+    fi
+  fi
 
   if [ -d "$abs_root/.git" ]; then
     if [ -f "$abs_root/.git/hooks/pre-commit" ]; then
@@ -2905,6 +3577,7 @@ main() {
   emit_repo_files
   chmod_execs
   install_rules
+  install_agent_skills
   install_pre_commit
   write_manifest
 

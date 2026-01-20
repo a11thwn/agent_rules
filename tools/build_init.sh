@@ -74,6 +74,20 @@ collect_files() {
     done < <(find "$REPO_ROOT/.vscode" -maxdepth 1 -type f -name "*.json" -print0)
   fi
 
+  # 工作区上下文（文本）
+  if [ -d "$REPO_ROOT/.context" ]; then
+    while IFS= read -r -d '' f; do
+      files+=("${f#"$REPO_ROOT/"}")
+    done < <(find "$REPO_ROOT/.context" -maxdepth 1 -type f -name "*.md" -print0)
+  fi
+
+  # 工作流模板（文本）
+  if [ -d "$REPO_ROOT/.agent/workflows" ]; then
+    while IFS= read -r -d '' f; do
+      files+=("${f#"$REPO_ROOT/"}")
+    done < <(find "$REPO_ROOT/.agent/workflows" -maxdepth 1 -type f -name "*.md" -print0)
+  fi
+
   # 脚本模板（文本）
   if [ -d "$REPO_ROOT/scripts/templates" ]; then
     while IFS= read -r -d '' f; do
@@ -114,6 +128,7 @@ DRY_RUN="0"
 SYNC_CURSOR="1"
 VERIFY="0"
 MANIFEST="0"
+NO_SKILLS="0"
 
 # 输出 INFO 日志
 log_info() { echo "[INFO] $*"; }
@@ -126,12 +141,13 @@ log_error() { echo "[ERROR] $*" >&2; }
 usage() {
   cat <<'USAGE'
 用法：
-  bash init_agent_rules.sh [--dir <path>] [--force] [--no-cursor] [--dry-run] [--verify] [--manifest] [--help]
+  bash init_agent_rules.sh [--dir <path>] [--force] [--no-cursor] [--no-skills] [--dry-run] [--verify] [--manifest] [--help]
 
 参数：
   --dir <path>     指定输出/安装目录（默认：当前目录）
   --force          允许覆盖已存在文件（不备份）
   --no-cursor      不同步到 .cursor/rules/
+  --no-skills      不安装 Awesome Skills
   --dry-run        只打印将创建/覆盖/跳过的清单，不实际写入
   --verify         执行后做一次自检并输出结果
   --manifest       生成 MANIFEST.txt 与 MANIFEST.sha256（可选）
@@ -251,6 +267,9 @@ parse_args() {
         ;;
       --no-cursor)
         SYNC_CURSOR="0"
+        ;;
+      --no-skills)
+        NO_SKILLS="1"
         ;;
       --dry-run)
         DRY_RUN="1"
@@ -464,6 +483,65 @@ install_rules() {
   fi
 }
 
+# 安装 Awesome Skills（可选）
+install_agent_skills() {
+  local abs_root
+  abs_root="$(abs_dir "$ROOT_DIR")"
+
+  if [ "$NO_SKILLS" = "1" ]; then
+    log_info "已关闭技能安装（--no-skills）。"
+    return 0
+  fi
+
+  local target="$abs_root/.agent/skills"
+  local temp_dir="$abs_root/.agent/skills-temp"
+  if [ "$DRY_RUN" = "1" ]; then
+    log_info "[DRY-RUN] 将克隆 Awesome Skills 并扁平化到：$target"
+    return 0
+  fi
+
+  if [ -d "$target" ] && [ -n "$(ls -A "$target" 2>/dev/null)" ]; then
+    log_warn "skills 目录非空，跳过安装：$target"
+    return 0
+  fi
+
+  if ! command -v git >/dev/null 2>&1; then
+    log_warn "缺少 git，跳过 skills 克隆。"
+    return 0
+  fi
+
+  if [ -d "$temp_dir" ]; then
+    rm -rf "$temp_dir"
+  fi
+
+  mkdir -p "$temp_dir"
+  if ! git clone --depth 1 https://github.com/sickn33/antigravity-awesome-skills "$temp_dir"; then
+    log_warn "skills 克隆失败，已跳过。"
+    rm -rf "$temp_dir"
+    return 0
+  fi
+
+  mkdir -p "$target"
+  if [ -d "$temp_dir/skills" ] && compgen -G "$temp_dir/skills/*" >/dev/null 2>&1; then
+    mv "$temp_dir/skills/"* "$target/"
+  fi
+
+  if [ -d "$temp_dir/scripts" ]; then
+    mv "$temp_dir/scripts" "$target/"
+  fi
+
+  if [ -f "$temp_dir/skills_index.json" ]; then
+    mv "$temp_dir/skills_index.json" "$target/"
+  fi
+
+  if [ -f "$temp_dir/README.md" ]; then
+    mv "$temp_dir/README.md" "$target/"
+  fi
+
+  rm -rf "$temp_dir"
+  log_info "已安装 Awesome Skills（扁平化）：$target"
+}
+
 # 安装 pre-commit 钩子（仅当存在 .git/）
 install_pre_commit() {
   local abs_root
@@ -525,6 +603,9 @@ verify_install() {
     "Debugging-Rules.md"
     ".agent/rules/AGENTS.mdc"
     ".agent/rules/Debugging-Rules.mdc"
+    ".context/system_prompt.md"
+    ".context/coding_style.md"
+    ".agent/workflows/openspec-apply.md"
     ".editorconfig"
     "scripts/templates/dev.sh"
   )
@@ -547,6 +628,14 @@ verify_install() {
     fi
   fi
 
+  if [ "$NO_SKILLS" != "1" ]; then
+    if [ -d "$abs_root/.agent/skills" ]; then
+      log_info "存在：.agent/skills/"
+    else
+      log_warn "缺失：.agent/skills/（可能跳过克隆）"
+    fi
+  fi
+
   if [ "$ok" = "1" ]; then
     log_info "自检通过"
   else
@@ -564,6 +653,8 @@ print_summary() {
     "AGENTS.md"
     "Debugging-Rules.md"
     ".agent/rules/"
+    ".context/"
+    ".agent/workflows/"
     ".cursor/rules/"
     "scripts/templates/"
     ".editorconfig"
@@ -578,6 +669,16 @@ print_summary() {
       log_warn "  - 缺失：$p"
     fi
   done
+
+  if [ "$NO_SKILLS" = "1" ]; then
+    log_info "  - 已跳过：.agent/skills/"
+  else
+    if [ -d "$abs_root/.agent/skills" ]; then
+      log_info "  - 存在：.agent/skills/"
+    else
+      log_warn "  - 缺失：.agent/skills/"
+    fi
+  fi
 
   if [ -d "$abs_root/.git" ]; then
     if [ -f "$abs_root/.git/hooks/pre-commit" ]; then
@@ -606,6 +707,7 @@ main() {
   emit_repo_files
   chmod_execs
   install_rules
+  install_agent_skills
   install_pre_commit
   write_manifest
 
